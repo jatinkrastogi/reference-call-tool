@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Request a Reference Call</title>
+<style>
+  :root {
+    --paper: #FFFFFF;
+    --bg-soft: #F5F7F5;
+    --ink: #333335;
+    --ink-soft: #6D6E70;
+    --line: #E2E4E1;
+    --navy: #58595B;
+    --navy-dark: #3D3E40;
+    --orange: #6FBE49;
+    --orange-dark: #58A238;
+    --card: #FFFFFF;
+    --danger: #B3261E;
+    --csc: #8A6D3B;
+    --csc-bg: #F5EFE2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: var(--bg-soft);
+    margin: 0;
+    padding: 28px 20px 40px;
+    line-height: 1.5;
+  }
+  #ref-tool-root { max-width: 780px; margin: 0 auto; }
+  .top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  .logo-mark { padding-top: 2px; background: none; border: none; cursor: pointer; }
+  .logo-mark img { height: 34px; width: auto; display: block; }
+  h1 { font-family: Georgia, "Source Serif 4", serif; font-size: 27px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em; color: var(--navy); }
+  .eyebrow { color: var(--orange-dark); font-size: 14px; font-weight: 600; margin: 0 0 10px; }
+  .subhead { color: var(--ink-soft); font-size: 14.5px; margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin-bottom: 18px; }
+  label { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); margin: 14px 0 5px; }
+  label:first-child { margin-top: 0; }
+  .required-mark { color: var(--danger); }
+  input[type=text], input[type=email], select, textarea {
+    width: 100%; font-size: 14.5px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--bg-soft); color: var(--ink); font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--orange); outline-offset: 1px; border-color: var(--orange); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; background: var(--orange); color: #fff; border: none;
+    padding: 10px 16px; border-radius: 6px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .btn:hover { background: var(--orange-dark); }
+  .btn.secondary { background: transparent; color: var(--navy); border: 1px solid var(--navy); }
+  .btn.secondary:hover { background: #EEF0F4; }
+  .btn.small { padding: 6px 11px; font-size: 12.5px; }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .match-card { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; background: var(--bg-soft); }
+  .match-radio { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
+  .match-radio input[type=radio] { margin-top: 4px; flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--orange); }
+  .match-radio:hover { background: #EFF2EF; }
+  .match-card .tag {
+    display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--navy); background: #E7ECF5; padding: 2px 7px; border-radius: 4px; margin: 0 6px 8px 0;
+  }
+  .match-card .tag.related { color: var(--orange-dark); background: #FCEBD9; }
+  .match-card .name { font-weight: 700; font-size: 15px; }
+  .match-card .meta { color: var(--ink-soft); font-size: 13.5px; margin-top: 2px; }
+  .email-box {
+    white-space: pre-wrap; background: var(--bg-soft); border: 1px solid var(--line); border-radius: 6px;
+    padding: 14px; font-size: 13.5px; font-family: ui-monospace, Menlo, monospace; margin: 10px 0;
+  }
+  .banner { font-size: 13px; color: var(--ink-soft); background: #EEF0F4; border-radius: 6px; padding: 9px 12px; margin-bottom: 14px; }
+  .banner.err { color: #fff; background: var(--danger); }
+  .empty { color: var(--ink-soft); font-size: 14px; padding: 8px 0; }
+  details summary { cursor: pointer; font-weight: 600; font-size: 13.5px; color: var(--ink-soft); padding: 4px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 10px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--ink-soft); font-weight: 600; }
+  .row-flex { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .close-x { background: none; border: none; color: var(--ink-soft); cursor: pointer; font-size: 13px; text-decoration: underline; padding: 0; }
+  .status-msg { font-size: 13px; margin-top: 8px; }
+  .status-msg.ok { color: var(--navy); }
+  .status-msg.err { color: var(--danger); }
+  .footer-admin { margin-top: 44px; padding-top: 12px; border-top: 1px solid var(--line); text-align: center; }
+  .footer-admin a { font-size: 11.5px; color: #B7BECB; text-decoration: none; cursor: pointer; }
+  .footer-admin a:hover { color: var(--ink-soft); }
+  .send-to { font-size: 13px; color: var(--ink-soft); display: inline-flex; align-items: center; gap: 5px; }
+  .icon-btn { background: none; border: none; cursor: pointer; color: var(--ink-soft); padding: 2px; display: inline-flex; border-radius: 4px; }
+  .icon-btn:hover { color: var(--navy); background: #EEF0F4; }
+  .setup-note { font-size: 12.5px; color: var(--ink-soft); background: #FCEBD9; border: 1px solid #F0D2A8; border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<div id="ref-tool-root">
+  <div class="top-row">
+    <div>
+      <p class="eyebrow">Need a customer who'll vouch for us?</p>
+      <h1>Request a Reference Call</h1>
+      <p class="subhead">Find the right customer voice for your prospect, and get the ask moving in seconds.</p>
+    </div>
+    <button class="logo-mark" id="logo-slot" type="button" aria-label="Reset to home">
+      <img src="./netchex-logo.png" alt="Netchex" onerror="this.style.display='none'">
+    </button>
+  </div>
+
+  <div id="setup-note-area"></div>
+  <div id="banner-area"></div>
+
+  <div id="form-card" class="card" style="margin-top:16px;">
+    <label for="industry-select">Which industry is your prospect in? <span class="required-mark">*</span></label>
+    <select id="industry-select" required></select>
+    <div id="other-industry-wrap" style="display:none;">
+      <label for="other-industry-input">Describe the industry <span class="required-mark">*</span></label>
+      <input type="text" id="other-industry-input" placeholder="e.g. Craft brewing">
+    </div>
+
+    <div style="margin-top:16px;">
+      <button class="btn" id="find-refs-btn">Find references</button>
+    </div>
+  </div>
+
+  <div id="results-area"></div>
+
+  <div class="footer-admin"><a id="admin-toggle">Admin Console</a></div>
+
+  <div id="admin-lock" class="card" style="display:none; margin-top:10px; max-width:320px;">
+    <label for="admin-passcode">Admin passcode</label>
+    <input type="text" id="admin-passcode" placeholder="Enter passcode" autocomplete="off">
+    <div class="row-flex" style="margin-top:10px;">
+      <button class="btn small" id="admin-unlock-btn">Unlock</button>
+      <button class="close-x" id="admin-lock-cancel">Cancel</button>
+    </div>
+    <div id="admin-lock-status" class="status-msg"></div>
+  </div>
+
+  <div id="admin-area" style="display:none;">
+    <details style="margin-top: 10px;">
+      <summary>Reference Request History</summary>
+      <div class="card" style="margin-top: 10px;">
+        <p class="empty">Requests are logged to a Google Sheet via Google Forms (GitHub Pages can't store data itself). View it there:</p>
+        <a class="btn secondary small" id="open-sheet-link" href="#" target="_blank" rel="noopener" style="text-decoration:none;">Open response sheet</a>
+        <p class="empty" id="log-config-note" style="margin-top:10px;"></p>
+      </div>
+    </details>
+
+    <details style="margin-top: 10px;">
+      <summary>Manage Reference List</summary>
+      <div class="card" style="margin-top: 10px;">
+        <p class="empty">This list is loaded from <code>data.json</code> in the repo. To update it, edit that file on GitHub and commit — GitHub Pages redeploys automatically (usually within a minute).</p>
+        <table>
+          <thead><tr><th>Industry</th><th>Account</th><th>Contact</th><th>Account owner</th><th>Note</th></tr></thead>
+          <tbody id="ref-table-body"></tbody>
+        </table>
+
+        <label for="paste-update">Turn pasted spreadsheet rows into data.json</label>
+        <p class="empty" style="margin:0 0 6px;">Paste rows copied from Excel/SharePoint (Industry, Account, Contact, Account Owner, Account Owner Email, Note) below, then copy the generated JSON and paste it into <code>data.json</code> on GitHub to publish the update.</p>
+        <textarea id="paste-update" rows="5" placeholder="Industry	Account	Contact	Account Owner	Account Owner Email	Note"></textarea>
+        <div class="row-flex" style="margin-top:10px;">
+          <button class="btn secondary small" id="generate-json-btn">Generate JSON</button>
+        </div>
+        <div id="generated-json-wrap" style="display:none; margin-top:10px;">
+          <textarea id="generated-json" rows="8" readonly></textarea>
+          <div class="row-flex" style="margin-top:8px;">
+            <button class="btn secondary small" id="copy-json-btn">Copy JSON</button>
+          </div>
+        </div>
+        <div id="manage-status" class="status-msg"></div>
+      </div>
+    </details>
+  </div>
+</div>
+
+<script>
+(function () {
+  // ---- Configuration you need to fill in (see README.md for the full walkthrough) ----
+  const GOOGLE_FORM_ACTION = "https://docs.google.com/forms/d/e/YOUR_FORM_ID/formResponse"; // TODO: replace
+  const FORM_ENTRY = {
+    aeName: "entry.111111111",            // TODO: replace with your real entry IDs, in this order:
+    prospectName: "entry.222222222",      // AE Name, Prospect Name, Industry Requested,
+    industryRequested: "entry.333333333", // Selected Account, Selected Industry, Account Owner, Match Type
+    selectedAccount: "entry.444444444",
+    selectedIndustry: "entry.555555555",
+    accountOwner: "entry.666666666",
+    matchType: "entry.777777777"
+  };
+  const RESPONSE_SHEET_URL = ""; // TODO: paste the link to your Google Sheet of responses
+  const ADMIN_CODE = "Netchex123"; // Client-side only — a speed bump, not real security. Change if you like.
+  const OTHER_VALUE = "__other__";
+
+  const FALLBACK_ROWS = [
+    { industry: "Auto Dealerships", account: "Central Valley Automotive Inc", contact: "Lisa Bolton", owner: "Courtney Burbach", ownerEmail: "cburbach@netchexonline.com", note: "" }
+  ];
+
+  let refRows = [];
+  let adminUnlocked = false;
+
+  const $ = (id) => document.getElementById(id);
+  const isCSC = (r) => (r.note || "").trim().toLowerCase() === "client success center";
+  const COPY_ICON = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:-2px;"><rect x="5.5" y="5.5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 10.5H2.5C1.94772 10.5 1.5 10.0523 1.5 9.5V2.5C1.5 1.94772 1.94772 1.5 2.5 1.5H9.5C10.0523 1.5 10.5 1.94772 10.5 2.5V3.5" stroke="currentColor" stroke-width="1.3"/></svg>';
+
+  async function copyText(text) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (e) {}
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "-1000px";
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    } catch (e) { return false; }
+  }
+
+  function showBanner(msg, isErr) {
+    $("banner-area").innerHTML = msg ? `<div class="banner ${isErr ? 'err' : ''}">${msg}</div>` : "";
+  }
+
+  function escapeHtml(s) {
+    return String(s || "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  }
+
+  function checkSetup() {
+    const notes = [];
+    if (GOOGLE_FORM_ACTION.includes("YOUR_FORM_ID")) notes.push("Google Form isn't configured yet, so requests won't be logged (see README.md).");
+    if (!RESPONSE_SHEET_URL) notes.push('"Open response sheet" link isn\'t set yet.');
+    if (notes.length) {
+      $("setup-note-area").innerHTML = `<div class="setup-note">Setup needed: ${notes.join(" ")}</div>`;
+    }
+    $("open-sheet-link").href = RESPONSE_SHEET_URL || "#";
+    $("log-config-note").textContent = RESPONSE_SHEET_URL ? "" : "Set RESPONSE_SHEET_URL near the top of index.html once your Google Sheet exists.";
+  }
+
+  async function loadData() {
+    try {
+      const res = await fetch("./data.json", { cache: "no-store" });
+      if (!res.ok) throw new Error("fetch failed");
+      refRows = await res.json();
+      if (!Array.isArray(refRows) || refRows.length === 0) throw new Error("empty data.json");
+    } catch (e) {
+      refRows = FALLBACK_ROWS;
+      showBanner("Couldn't load data.json — showing a small fallback list. If you're testing locally, serve this folder with a local web server rather than opening index.html directly (see README.md).", true);
+    }
+    renderIndustryOptions();
+    renderTable();
+  }
+
+  function renderIndustryOptions() {
+    const industries = [...new Set(refRows.map(r => r.industry))].sort();
+    $("industry-select").innerHTML = `<option value="" disabled selected>Select Industry</option>`
+      + industries.map(i => `<option value="${escapeHtml(i)}">${escapeHtml(i)}</option>`).join("")
+      + `<option value="${OTHER_VALUE}">Other (not listed)</option>`;
+  }
+
+  function renderTable() {
+    $("ref-table-body").innerHTML = refRows.map(r => `
+      <tr>
+        <td>${escapeHtml(r.industry)}</td>
+        <td>${escapeHtml(r.account)}</td>
+        <td>${escapeHtml(r.contact)}</td>
+        <td>${escapeHtml(r.owner)}</td>
+        <td>${escapeHtml(r.note || "")}</td>
+      </tr>
+    `).join("");
+  }
+
+  function tokenize(str) {
+    return String(str || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").split(" ").filter(Boolean);
+  }
+
+  function jaccard(aTokens, bTokens) {
+    const a = new Set(aTokens), b = new Set(bTokens);
+    if (a.size === 0 || b.size === 0) return 0;
+    let overlap = 0;
+    a.forEach(t => { if (b.has(t)) overlap++; });
+    return overlap / new Set([...a, ...b]).size;
+  }
+
+  // Relevance first (exact, then token overlap), CSC only deprioritized within the same relevance
+  // level, and padded to a minimum of 3 with the closest available if genuine matches fall short.
+  function findMatches(industryInput, forceRelatedOnly) {
+    const target = industryInput.trim().toLowerCase();
+    const targetTokens = tokenize(industryInput);
+
+    const scored = refRows.map(r => ({
+      row: r,
+      exact: !forceRelatedOnly && r.industry.trim().toLowerCase() === target,
+      score: jaccard(targetTokens, tokenize(r.industry)),
+      csc: isCSC(r)
+    }));
+
+    const exactNonCSC = scored.filter(m => m.exact && !m.csc);
+    const exactCSC = scored.filter(m => m.exact && m.csc);
+    const relatedNonCSC = scored.filter(m => !m.exact && !m.csc && m.score > 0).sort((a, b) => b.score - a.score);
+    const relatedCSC = scored.filter(m => !m.exact && m.csc && m.score > 0).sort((a, b) => b.score - a.score);
+
+    let ordered = [...exactNonCSC, ...exactCSC, ...relatedNonCSC, ...relatedCSC];
+
+    const MIN_RESULTS = 3;
+    if (ordered.length < MIN_RESULTS) {
+      const used = new Set(ordered.map(m => m.row));
+      const remaining = scored.filter(m => !used.has(m.row));
+      const remainingNonCSC = remaining.filter(m => !m.csc);
+      const remainingCSC = remaining.filter(m => m.csc);
+      ordered = ordered.concat(remainingNonCSC, remainingCSC);
+    }
+
+    return ordered.slice(0, 4).map(m => ({ row: m.row, exact: m.exact, csc: m.csc }));
+  }
+
+  function firstName(full) {
+    return String(full || "").trim().split(/\s+/)[0] || full || "there";
+  }
+
+  function buildEmail(match, prospectName, industryLabel, aeName, aeEmail) {
+    const r = match.row;
+    const amFirst = firstName(r.owner);
+    const contactFirst = firstName(r.contact);
+    const aeDisplay = aeName || "[Your name]";
+    const subject = `Reference call request – ${prospectName} (${industryLabel})`;
+    const body =
+`Hi ${amFirst},
+
+I have a prospect, ${prospectName}, looking into Netchex in the ${industryLabel} space. I saw that ${r.contact} at ${r.account} has agreed to take reference calls — could you check their availability sometime this week for a quick call?
+
+Feel free to use the note below if it's helpful for reaching out to them:
+
+——————————————
+Hi ${contactFirst},
+
+Hope you're doing well! We've got another company that's looking into Netchex, and they'd love to hear from someone who's actually using it day to day. You've built such great results with the platform, and I think your perspective could really help them see what's possible.
+
+The call's quick — usually about 15 to 20 minutes — and we'll make it super easy. ${aeDisplay}, who's working with the prospect, will handle the scheduling and share all the details ahead of time so you know exactly what to expect.
+
+Would you be open to it?
+
+Thanks,
+${amFirst}
+——————————————
+
+Let me know if this week works, or if another time is better.
+
+Thanks!
+${aeDisplay}${aeEmail ? "\n" + aeEmail : ""}`;
+    return { subject, body, to: r.ownerEmail };
+  }
+
+  // Submits a request to Google Forms via a hidden iframe, so the page never navigates away
+  // and no CORS-restricted fetch is needed. Silently does nothing if not configured.
+  function logToGoogleForm(entry) {
+    if (GOOGLE_FORM_ACTION.includes("YOUR_FORM_ID")) return;
+    try {
+      let iframe = document.getElementById("hidden_iframe");
+      if (!iframe) {
+        iframe = document.createElement("iframe");
+        iframe.name = "hidden_iframe";
+        iframe.id = "hidden_iframe";
+        iframe.style.display = "none";
+        document.body.appendChild(iframe);
+      }
+      const form = document.createElement("form");
+      form.action = GOOGLE_FORM_ACTION;
+      form.method = "POST";
+      form.target = "hidden_iframe";
+      const fields = {
+        [FORM_ENTRY.aeName]: entry.aeName,
+        [FORM_ENTRY.prospectName]: entry.prospectName,
+        [FORM_ENTRY.industryRequested]: entry.industryRequested,
+        [FORM_ENTRY.selectedAccount]: entry.selectedAccount,
+        [FORM_ENTRY.selectedIndustry]: entry.selectedIndustry,
+        [FORM_ENTRY.accountOwner]: entry.accountOwner,
+        [FORM_ENTRY.matchType]: entry.matchType
+      };
+      Object.keys(fields).forEach(name => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = name;
+        input.value = fields[name];
+        form.appendChild(input);
+      });
+      document.body.appendChild(form);
+      form.submit();
+      setTimeout(() => form.remove(), 1000);
+    } catch (e) {
+      // Logging should never block the AE's request.
+    }
+  }
+
+  function renderResults(matches, industryLabel, isOther) {
+    const area = $("results-area");
+    if (matches.length === 0) {
+      area.innerHTML = `<div class="card"><p class="empty">No references are on file yet. Check data.json, or check back once the sheet has more approved references.</p>
+        <button class="btn secondary small" id="restart-btn-empty">Start a new search</button></div>`;
+      $("restart-btn-empty").addEventListener("click", startNewSearch);
+      return;
+    }
+    const anyExact = matches.some(m => m.exact);
+    let headNote = "";
+    if (isOther) {
+      headNote = `<p class="empty">We don't have a reference available for "${escapeHtml(industryLabel)}", but here are the closest matches:</p>`;
+    } else if (!anyExact) {
+      headNote = `<p class="empty">No exact match for "${escapeHtml(industryLabel)}" — showing the closest available references.</p>`;
+    }
+
+    area.innerHTML = `<div class="card">
+      <div class="row-flex" style="justify-content: space-between; margin-bottom: 4px;">
+        <strong>Pick a reference</strong>
+        <button class="btn secondary small" id="restart-btn-top">Start a new search</button>
+      </div>
+      ${headNote}
+      <div style="margin-top:12px;">
+        ${matches.map((m, i) => {
+          const r = m.row;
+          return `
+          <label class="match-card match-radio">
+            <input type="radio" name="ref-choice" value="${i}" ${i === 0 ? "checked" : ""}>
+            <div>
+              <span class="tag ${m.exact ? "" : "related"}">${m.exact ? escapeHtml(r.industry) : "related: " + escapeHtml(r.industry)}</span>
+              <div class="name">${escapeHtml(r.account)}</div>
+              <div class="meta">Contact: ${escapeHtml(r.contact)} · Account owner: ${escapeHtml(r.owner)}${m.csc ? " (Client Success Center)" : ""}</div>
+            </div>
+          </label>`;
+        }).join("")}
+      </div>
+      <div id="connect-area" style="margin-top:8px;">
+        <button class="btn" id="connect-btn">Connect with Account Owner</button>
+      </div>
+    </div>`;
+
+    $("restart-btn-top").addEventListener("click", startNewSearch);
+
+    $("connect-btn").addEventListener("click", () => {
+      const selected = document.querySelector('input[name="ref-choice"]:checked');
+      const selectedIdx = selected ? Number(selected.value) : 0;
+      const match = matches[selectedIdx];
+      const connectArea = $("connect-area");
+
+      connectArea.innerHTML = `
+        <div class="card" style="background: var(--bg-soft); margin-top: 6px;">
+          <label for="connect-ae-name">Your first name <span class="required-mark">*</span></label>
+          <input type="text" id="connect-ae-name" placeholder="e.g. Jordan" autocomplete="off">
+
+          <label for="connect-prospect-name">Prospect name <span class="required-mark">*</span></label>
+          <input type="text" id="connect-prospect-name" placeholder="e.g. Northgate Logistics">
+
+          <div style="margin-top:14px;">
+            <button class="btn" id="draft-email-btn">Draft Email</button>
+          </div>
+          <div id="draft-status" class="status-msg err"></div>
+          <div id="email-output"></div>
+        </div>
+      `;
+
+      $("draft-email-btn").addEventListener("click", () => {
+        const aeName = $("connect-ae-name").value.trim();
+        const prospectName = $("connect-prospect-name").value.trim();
+        const missing = [];
+        if (!aeName) missing.push("your first name");
+        if (!prospectName) missing.push("prospect name");
+        if (missing.length) {
+          $("draft-status").textContent = `Please fill in: ${missing.join(", ")}.`;
+          return;
+        }
+        $("draft-status").textContent = "";
+
+        const email = buildEmail(match, prospectName, industryLabel, aeName, "");
+        const outputArea = $("email-output");
+        outputArea.innerHTML = `
+          <div class="email-box">${escapeHtml(email.subject)}\n\n${escapeHtml(email.body)}</div>
+          <div class="row-flex" style="justify-content: space-between; align-items:center;">
+            <button class="btn small" data-copy="1">Copy email draft</button>
+            ${email.to
+              ? `<span class="send-to">Send to: ${escapeHtml(email.to)} <button class="icon-btn" data-copy-owner="1" type="button" title="Copy account owner email" aria-label="Copy account owner email">${COPY_ICON}</button></span>`
+              : `<span class="empty" style="margin:0;">No account owner email on file — copy and send manually.</span>`}
+          </div>
+          <div class="status-msg ok" id="output-copy-status"></div>
+          <div class="row-flex" style="margin-top:10px;">
+            <button class="btn secondary small" id="restart-btn-bottom">Start a new search</button>
+          </div>
+        `;
+        outputArea.querySelector('[data-copy="1"]').addEventListener("click", async () => {
+          const ok = await copyText(`Subject: ${email.subject}\n\n${email.body}`);
+          $("output-copy-status").textContent = ok
+            ? "Copied email draft to clipboard."
+            : "Couldn't copy automatically — select the text above and copy manually.";
+          setTimeout(() => { $("output-copy-status").textContent = ""; }, 3000);
+        });
+        const copyOwnerBtn = outputArea.querySelector('[data-copy-owner="1"]');
+        if (copyOwnerBtn) {
+          copyOwnerBtn.addEventListener("click", async () => {
+            const ok = await copyText(email.to);
+            $("output-copy-status").textContent = ok
+              ? "Copied account owner email to clipboard."
+              : "Couldn't copy automatically.";
+            setTimeout(() => { $("output-copy-status").textContent = ""; }, 3000);
+          });
+        }
+        $("restart-btn-bottom").addEventListener("click", startNewSearch);
+
+        const matchType = isOther ? "Other" : (match.exact ? "Exact" : "Related");
+        logToGoogleForm({
+          aeName,
+          prospectName,
+          industryRequested: industryLabel,
+          selectedAccount: match.row.account,
+          selectedIndustry: match.row.industry,
+          accountOwner: match.row.owner,
+          matchType
+        });
+      });
+    });
+  }
+
+  function startNewSearch() {
+    $("results-area").innerHTML = "";
+    $("industry-select").selectedIndex = 0;
+    $("other-industry-input").value = "";
+    $("other-industry-wrap").style.display = "none";
+    $("form-card").style.display = "block";
+    showBanner("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  $("logo-slot").addEventListener("click", startNewSearch);
+
+  document.addEventListener("change", (e) => {
+    if (e.target && e.target.id === "industry-select") {
+      $("other-industry-wrap").style.display = e.target.value === OTHER_VALUE ? "block" : "none";
+    }
+  });
+
+  $("find-refs-btn").addEventListener("click", () => {
+    const industrySelectVal = $("industry-select").value;
+    const isOther = industrySelectVal === OTHER_VALUE;
+    const industryLabel = isOther ? $("other-industry-input").value.trim() : industrySelectVal;
+
+    if (!industrySelectVal) {
+      showBanner("Select an industry to find references.", true);
+      return;
+    }
+    if (isOther && !industryLabel) {
+      showBanner("Describe the industry, or pick one from the list.", true);
+      return;
+    }
+    showBanner("");
+
+    const matches = findMatches(industryLabel, isOther);
+    renderResults(matches, industryLabel, isOther);
+    $("form-card").style.display = "none";
+  });
+
+  $("admin-toggle").addEventListener("click", () => {
+    const adminEl = $("admin-area");
+    if (adminUnlocked) {
+      adminEl.style.display = adminEl.style.display === "none" ? "block" : "none";
+      return;
+    }
+    const lockEl = $("admin-lock");
+    lockEl.style.display = lockEl.style.display === "none" ? "block" : "none";
+    if (lockEl.style.display === "block") $("admin-passcode").focus();
+  });
+  $("admin-lock-cancel").addEventListener("click", () => {
+    $("admin-lock").style.display = "none";
+    $("admin-passcode").value = "";
+  });
+  function tryUnlock() {
+    if ($("admin-passcode").value === ADMIN_CODE) {
+      adminUnlocked = true;
+      $("admin-lock").style.display = "none";
+      $("admin-passcode").value = "";
+      $("admin-area").style.display = "block";
+    } else {
+      const el = $("admin-lock-status");
+      el.textContent = "Incorrect passcode.";
+      el.className = "status-msg err";
+    }
+  }
+  $("admin-unlock-btn").addEventListener("click", tryUnlock);
+  $("admin-passcode").addEventListener("keydown", (e) => { if (e.key === "Enter") tryUnlock(); });
+
+  $("generate-json-btn").addEventListener("click", () => {
+    const raw = $("paste-update").value;
+    const statusEl = $("manage-status");
+    if (!raw.trim()) {
+      statusEl.textContent = "Paste some rows first.";
+      statusEl.className = "status-msg err";
+      return;
+    }
+    const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
+    let start = 0;
+    if (/industry/i.test(lines[0]) && /account/i.test(lines[0])) start = 1;
+    const parsed = [];
+    for (let i = start; i < lines.length; i++) {
+      const cols = lines[i].split("\t");
+      if (cols.length < 4) continue;
+      parsed.push({
+        industry: (cols[0] || "").trim(), account: (cols[1] || "").trim(),
+        contact: (cols[2] || "").trim(), owner: (cols[3] || "").trim(),
+        ownerEmail: (cols[4] || "").trim(), note: (cols[5] || "").trim()
+      });
+    }
+    if (parsed.length === 0) {
+      statusEl.textContent = "Couldn't read any rows — make sure columns are tab-separated (paste directly from Excel/SharePoint).";
+      statusEl.className = "status-msg err";
+      return;
+    }
+    $("generated-json").value = JSON.stringify(parsed, null, 2);
+    $("generated-json-wrap").style.display = "block";
+    statusEl.textContent = `Generated JSON for ${parsed.length} rows. Copy it and replace the contents of data.json on GitHub.`;
+    statusEl.className = "status-msg ok";
+  });
+
+  $("copy-json-btn").addEventListener("click", async () => {
+    const ok = await copyText($("generated-json").value);
+    const statusEl = $("manage-status");
+    statusEl.textContent = ok ? "Copied JSON to clipboard." : "Couldn't copy automatically — select the text and copy manually.";
+    statusEl.className = "status-msg " + (ok ? "ok" : "err");
+  });
+
+  checkSetup();
+  loadData();
+})();
+</script>
+</body>
+</html>
