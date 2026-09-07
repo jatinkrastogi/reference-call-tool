@@ -325,11 +325,16 @@ const FORM_ENTRY = {
     const amFirst = firstName(r.owner);
     const contactFirst = firstName(r.contact);
     const aeDisplay = aeName || "[Your name]";
-    const subject = `Reference call request – ${prospectName} (${industryLabel})`;
+    const subject = match.exact
+      ? `Reference call request – ${prospectName} (${industryLabel})`
+      : `Reference call request – ${prospectName}`;
+    const introLine = match.exact
+      ? `I have a prospect, ${prospectName}, looking into Netchex in the ${industryLabel} space.`
+      : `I have a prospect, ${prospectName}, looking into Netchex.`;
     const body =
 `Hi ${amFirst},
 
-I have a prospect, ${prospectName}, looking into Netchex in the ${industryLabel} space. I saw that ${r.contact} at ${r.account} has agreed to take reference calls — could you check their availability sometime this week for a quick call?
+${introLine} I saw that ${r.contact} at ${r.account} has agreed to take reference calls — could you check their availability sometime this week for a quick call?
 
 Feel free to use the note below if it's helpful for reaching out to them:
 
