@@ -63,6 +63,7 @@
     color: var(--navy); background: #E7ECF5; padding: 2px 7px; border-radius: 4px; margin: 0 6px 8px 0;
   }
   .match-card .tag.related { color: var(--orange-dark); background: #FCEBD9; }
+  .match-card .tag.pref { color: var(--navy-dark); background: #E7ECF5; font-weight: 600; }
   .match-card .name { font-weight: 700; font-size: 15px; }
   .match-card .meta { color: var(--ink-soft); font-size: 13.5px; margin-top: 2px; }
   .email-box {
@@ -114,6 +115,17 @@
       <input type="text" id="other-industry-input" placeholder="e.g. Craft brewing">
     </div>
 
+    <details class="refine-details" style="margin-top:14px;">
+      <summary>Refine further (optional)</summary>
+      <div style="margin-top:10px;">
+        <label for="region-select">Prospect's region</label>
+        <select id="region-select"></select>
+
+        <label for="size-select">Prospect's company size</label>
+        <select id="size-select"></select>
+      </div>
+    </details>
+
     <div style="margin-top:16px;">
       <button class="btn" id="find-refs-btn">Find references</button>
     </div>
@@ -148,13 +160,13 @@
       <div class="card" style="margin-top: 10px;">
         <p class="empty">This list is loaded from <code>data.json</code> in the repo. To update it, edit that file on GitHub and commit — GitHub Pages redeploys automatically (usually within a minute).</p>
         <table>
-          <thead><tr><th>Industry</th><th>Account</th><th>Contact</th><th>Account owner</th><th>Note</th></tr></thead>
+          <thead><tr><th>Industry</th><th>Account</th><th>Contact</th><th>Account owner</th><th>State</th><th>Region</th><th>Employees</th><th>Note</th></tr></thead>
           <tbody id="ref-table-body"></tbody>
         </table>
 
         <label for="paste-update">Turn pasted spreadsheet rows into data.json</label>
-        <p class="empty" style="margin:0 0 6px;">Paste rows copied from Excel/SharePoint (Industry, Account, Contact, Account Owner, Account Owner Email, Note) below, then copy the generated JSON and paste it into <code>data.json</code> on GitHub to publish the update.</p>
-        <textarea id="paste-update" rows="5" placeholder="Industry	Account	Contact	Account Owner	Account Owner Email	Note"></textarea>
+        <p class="empty" style="margin:0 0 6px;">Paste rows copied from the sheet in its current column order (Industry, Account, Company Code, State, Region, Employee Count, Contact, Account Owner, Account Owner Email, Note) below, then copy the generated JSON and paste it into <code>data.json</code> on GitHub to publish the update.</p>
+        <textarea id="paste-update" rows="5" placeholder="Industry	Account	Company Code	State	Region	Employee Count	Contact	Account Owner	Account Owner Email	Note"></textarea>
         <div class="row-flex" style="margin-top:10px;">
           <button class="btn secondary small" id="generate-json-btn">Generate JSON</button>
         </div>
@@ -173,22 +185,42 @@
 <script>
 (function () {
   // ---- Configuration you need to fill in (see README.md for the full walkthrough) ----
-const GOOGLE_FORM_ACTION = "https://docs.google.com/forms/d/e/1FAIpQLSdBex5KAViW3YNw8lHD7WP1p4G7kkjxlFlI46zOmSiD63zurg/formResponse";
-const FORM_ENTRY = {
-  aeName: "entry.671054740",
-  prospectName: "entry.1875455892",
-  industryRequested: "entry.1719838447",
-  selectedAccount: "entry.1119106520",
-  selectedIndustry: "entry.1548615864",
-  accountOwner: "entry.1021948576",
-  matchType: "entry.703829185"
-};
-  const RESPONSE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1OUhho0n7YHDv6E7Ia_QruMgnenKbynnJVtfc7BOrmiY/edit?usp=sharing"; 
+  const GOOGLE_FORM_ACTION = "https://docs.google.com/forms/d/e/YOUR_FORM_ID/formResponse"; // TODO: replace
+  const FORM_ENTRY = {
+    aeName: "entry.111111111",            // TODO: replace with your real entry IDs, in this order:
+    prospectName: "entry.222222222",      // AE Name, Prospect Name, Industry Requested,
+    industryRequested: "entry.333333333", // Selected Account, Selected Industry, Account Owner, Match Type
+    selectedAccount: "entry.444444444",
+    selectedIndustry: "entry.555555555",
+    accountOwner: "entry.666666666",
+    matchType: "entry.777777777"
+  };
+  const RESPONSE_SHEET_URL = ""; // TODO: paste the link to your Google Sheet of responses
   const ADMIN_CODE = "Netchex123"; // Client-side only — a speed bump, not real security. Change if you like.
   const OTHER_VALUE = "__other__";
+  const ANY_VALUE = "__any__";
+
+  // US Census Bureau divisions, used as the optional region filter.
+  const CENSUS_REGIONS = [
+    { name: "New England", states: "CT, ME, MA, NH, RI, VT" },
+    { name: "Middle Atlantic", states: "NJ, NY, PA" },
+    { name: "East North Central", states: "IL, IN, MI, OH, WI" },
+    { name: "West North Central", states: "IA, KS, MN, MO, NE, ND, SD" },
+    { name: "South Atlantic", states: "DE, FL, GA, MD, NC, SC, VA, DC, WV" },
+    { name: "East South Central", states: "AL, KY, MS, TN" },
+    { name: "West South Central", states: "AR, LA, OK, TX" },
+    { name: "Mountain", states: "AZ, CO, ID, MT, NV, NM, UT, WY" },
+    { name: "Pacific", states: "AK, CA, HI, OR, WA" }
+  ];
+
+  const SIZE_BUCKETS = [
+    { id: "0-50", label: "0–50 employees", inBucket: (n) => n != null && n <= 50 },
+    { id: "50-100", label: "50–100 employees", inBucket: (n) => n != null && n > 50 && n <= 100 },
+    { id: "100+", label: "100+ employees", inBucket: (n) => n != null && n > 100 }
+  ];
 
   const FALLBACK_ROWS = [
-    { industry: "Auto Dealerships", account: "Central Valley Automotive Inc", contact: "Lisa Bolton", owner: "Courtney Burbach", ownerEmail: "cburbach@netchexonline.com", note: "" }
+    { industry: "Auto Dealerships", account: "Central Valley Automotive Inc", contact: "Lisa Bolton", owner: "Courtney Burbach", ownerEmail: "cburbach@netchexonline.com", note: "", state: "California", region: "Pacific", employeeCount: 197 }
   ];
 
   let refRows = [];
@@ -250,6 +282,7 @@ const FORM_ENTRY = {
       showBanner("Couldn't load data.json — showing a small fallback list. If you're testing locally, serve this folder with a local web server rather than opening index.html directly (see README.md).", true);
     }
     renderIndustryOptions();
+    renderFilterOptions();
     renderTable();
   }
 
@@ -260,6 +293,13 @@ const FORM_ENTRY = {
       + `<option value="${OTHER_VALUE}">Other (not listed)</option>`;
   }
 
+  function renderFilterOptions() {
+    $("region-select").innerHTML = `<option value="${ANY_VALUE}">Any region</option>`
+      + CENSUS_REGIONS.map(r => `<option value="${escapeHtml(r.name)}">${escapeHtml(r.name)} (${escapeHtml(r.states)})</option>`).join("");
+    $("size-select").innerHTML = `<option value="${ANY_VALUE}">Any size</option>`
+      + SIZE_BUCKETS.map(b => `<option value="${b.id}">${escapeHtml(b.label)}</option>`).join("");
+  }
+
   function renderTable() {
     $("ref-table-body").innerHTML = refRows.map(r => `
       <tr>
@@ -267,6 +307,9 @@ const FORM_ENTRY = {
         <td>${escapeHtml(r.account)}</td>
         <td>${escapeHtml(r.contact)}</td>
         <td>${escapeHtml(r.owner)}</td>
+        <td>${escapeHtml(r.state || "")}</td>
+        <td>${escapeHtml(r.region || "")}</td>
+        <td>${r.employeeCount != null ? r.employeeCount : ""}</td>
         <td>${escapeHtml(r.note || "")}</td>
       </tr>
     `).join("");
@@ -286,9 +329,26 @@ const FORM_ENTRY = {
 
   // Relevance first (exact, then token overlap), CSC only deprioritized within the same relevance
   // level, and padded to a minimum of 3 with the closest available if genuine matches fall short.
-  function findMatches(industryInput, forceRelatedOnly) {
+  function preferenceScore(row, region, sizeId) {
+    let score = 0;
+    if (region && region !== ANY_VALUE && row.region === region) score += 1;
+    if (sizeId && sizeId !== ANY_VALUE) {
+      const bucket = SIZE_BUCKETS.find(b => b.id === sizeId);
+      if (bucket && bucket.inBucket(row.employeeCount)) score += 1;
+    }
+    return score;
+  }
+
+  // Ranks candidates by actual relevance first (exact match, then token overlap),
+  // and only within a given relevance level does a Client Success Center row get pushed behind
+  // a non-CSC one. An irrelevant row can never outrank a genuinely relevant one, CSC or not.
+  // If the AE optionally specified a region and/or company-size preference, those act only as a
+  // secondary tie-breaker within each relevance tier — never as a hard filter — so a genuinely
+  // relevant reference is never excluded just because it's a different size or region.
+  function findMatches(industryInput, forceRelatedOnly, region, sizeId) {
     const target = industryInput.trim().toLowerCase();
     const targetTokens = tokenize(industryInput);
+    const prefSort = (a, b) => preferenceScore(b.row, region, sizeId) - preferenceScore(a.row, region, sizeId);
 
     const scored = refRows.map(r => ({
       row: r,
@@ -297,10 +357,12 @@ const FORM_ENTRY = {
       csc: isCSC(r)
     }));
 
-    const exactNonCSC = scored.filter(m => m.exact && !m.csc);
-    const exactCSC = scored.filter(m => m.exact && m.csc);
-    const relatedNonCSC = scored.filter(m => !m.exact && !m.csc && m.score > 0).sort((a, b) => b.score - a.score);
-    const relatedCSC = scored.filter(m => !m.exact && m.csc && m.score > 0).sort((a, b) => b.score - a.score);
+    const exactNonCSC = scored.filter(m => m.exact && !m.csc).sort(prefSort);
+    const exactCSC = scored.filter(m => m.exact && m.csc).sort(prefSort);
+    const relatedNonCSC = scored.filter(m => !m.exact && !m.csc && m.score > 0)
+      .sort((a, b) => prefSort(a, b) || (b.score - a.score));
+    const relatedCSC = scored.filter(m => !m.exact && m.csc && m.score > 0)
+      .sort((a, b) => prefSort(a, b) || (b.score - a.score));
 
     let ordered = [...exactNonCSC, ...exactCSC, ...relatedNonCSC, ...relatedCSC];
 
@@ -308,12 +370,18 @@ const FORM_ENTRY = {
     if (ordered.length < MIN_RESULTS) {
       const used = new Set(ordered.map(m => m.row));
       const remaining = scored.filter(m => !used.has(m.row));
-      const remainingNonCSC = remaining.filter(m => !m.csc);
-      const remainingCSC = remaining.filter(m => m.csc);
+      const remainingNonCSC = remaining.filter(m => !m.csc).sort(prefSort);
+      const remainingCSC = remaining.filter(m => m.csc).sort(prefSort);
       ordered = ordered.concat(remainingNonCSC, remainingCSC);
     }
 
-    return ordered.slice(0, 4).map(m => ({ row: m.row, exact: m.exact, csc: m.csc }));
+    return ordered.slice(0, 4).map(m => ({
+      row: m.row,
+      exact: m.exact,
+      csc: m.csc,
+      matchesRegion: !!(region && region !== ANY_VALUE && m.row.region === region),
+      matchesSize: !!(sizeId && sizeId !== ANY_VALUE && SIZE_BUCKETS.find(b => b.id === sizeId) && SIZE_BUCKETS.find(b => b.id === sizeId).inBucket(m.row.employeeCount))
+    }));
   }
 
   function firstName(full) {
@@ -325,6 +393,9 @@ const FORM_ENTRY = {
     const amFirst = firstName(r.owner);
     const contactFirst = firstName(r.contact);
     const aeDisplay = aeName || "[Your name]";
+    // Only mention the requested industry when the selected reference is actually an exact
+    // match for it — for a related/closest-available pick, naming the wrong industry would
+    // misrepresent the reference (e.g. an Auto Dealership account for a Construction prospect).
     const subject = match.exact
       ? `Reference call request – ${prospectName} (${industryLabel})`
       : `Reference call request – ${prospectName}`;
@@ -429,8 +500,11 @@ ${aeDisplay}${aeEmail ? "\n" + aeEmail : ""}`;
             <input type="radio" name="ref-choice" value="${i}" ${i === 0 ? "checked" : ""}>
             <div>
               <span class="tag ${m.exact ? "" : "related"}">${m.exact ? escapeHtml(r.industry) : "related: " + escapeHtml(r.industry)}</span>
+              ${m.matchesRegion ? `<span class="tag pref">Same region</span>` : ""}
+              ${m.matchesSize ? `<span class="tag pref">Similar size</span>` : ""}
               <div class="name">${escapeHtml(r.account)}</div>
               <div class="meta">Contact: ${escapeHtml(r.contact)} · Account owner: ${escapeHtml(r.owner)}${m.csc ? " (Client Success Center)" : ""}</div>
+              <div class="meta">${r.state ? escapeHtml(r.state) : "State unknown"}${r.employeeCount != null ? ` · ~${r.employeeCount} employees` : ""}</div>
             </div>
           </label>`;
         }).join("")}
@@ -529,6 +603,10 @@ ${aeDisplay}${aeEmail ? "\n" + aeEmail : ""}`;
     $("industry-select").selectedIndex = 0;
     $("other-industry-input").value = "";
     $("other-industry-wrap").style.display = "none";
+    $("region-select").selectedIndex = 0;
+    $("size-select").selectedIndex = 0;
+    const refineDetails = document.querySelector(".refine-details");
+    if (refineDetails) refineDetails.open = false;
     $("form-card").style.display = "block";
     showBanner("");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -557,7 +635,9 @@ ${aeDisplay}${aeEmail ? "\n" + aeEmail : ""}`;
     }
     showBanner("");
 
-    const matches = findMatches(industryLabel, isOther);
+    const regionVal = $("region-select").value;
+    const sizeVal = $("size-select").value;
+    const matches = findMatches(industryLabel, isOther, regionVal, sizeVal);
     renderResults(matches, industryLabel, isOther);
     $("form-card").style.display = "none";
   });
@@ -603,13 +683,23 @@ ${aeDisplay}${aeEmail ? "\n" + aeEmail : ""}`;
     let start = 0;
     if (/industry/i.test(lines[0]) && /account/i.test(lines[0])) start = 1;
     const parsed = [];
+    // Expected column order, matching the SharePoint sheet:
+    // Industry, Account, Company Code, State, Region, Employee Count, Contact, Account Owner, Account Owner Email, Note
     for (let i = start; i < lines.length; i++) {
       const cols = lines[i].split("\t");
       if (cols.length < 4) continue;
+      const empCountRaw = (cols[5] || "").trim();
+      const empCount = empCountRaw ? parseInt(empCountRaw.replace(/[^0-9]/g, ""), 10) : null;
       parsed.push({
-        industry: (cols[0] || "").trim(), account: (cols[1] || "").trim(),
-        contact: (cols[2] || "").trim(), owner: (cols[3] || "").trim(),
-        ownerEmail: (cols[4] || "").trim(), note: (cols[5] || "").trim()
+        industry: (cols[0] || "").trim(),
+        account: (cols[1] || "").trim(),
+        state: (cols[3] || "").trim(),
+        region: (cols[4] || "").trim(),
+        employeeCount: (empCount != null && !isNaN(empCount)) ? empCount : null,
+        contact: (cols[6] || "").trim(),
+        owner: (cols[7] || "").trim(),
+        ownerEmail: (cols[8] || "").trim(),
+        note: (cols[9] || "").trim()
       });
     }
     if (parsed.length === 0) {
