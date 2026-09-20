@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -185,17 +186,19 @@
 <script>
 (function () {
   // ---- Configuration you need to fill in (see README.md for the full walkthrough) ----
-  const GOOGLE_FORM_ACTION = "https://docs.google.com/forms/d/e/YOUR_FORM_ID/formResponse"; // TODO: replace
+  const GOOGLE_FORM_ACTION = "https://docs.google.com/forms/d/e/1FAIpQLSdBex5KAViW3YNw8lHD7WP1p4G7kkjxlFlI46zOmSiD63zurg/formResponse";
   const FORM_ENTRY = {
-    aeName: "entry.111111111",            // TODO: replace with your real entry IDs, in this order:
-    prospectName: "entry.222222222",      // AE Name, Prospect Name, Industry Requested,
-    industryRequested: "entry.333333333", // Selected Account, Selected Industry, Account Owner, Match Type
-    selectedAccount: "entry.444444444",
-    selectedIndustry: "entry.555555555",
-    accountOwner: "entry.666666666",
-    matchType: "entry.777777777"
+    aeName: "entry.671054740",
+    prospectName: "entry.1875455892",
+    industryRequested: "entry.1719838447",
+    regionRequested: "entry.1778017330",
+    sizeRequested: "entry.1941948194",
+    selectedAccount: "entry.1119106520",
+    selectedIndustry: "entry.1548615864",
+    accountOwner: "entry.1021948576",
+    matchType: "entry.703829185"
   };
-  const RESPONSE_SHEET_URL = ""; // TODO: paste the link to your Google Sheet of responses
+  const RESPONSE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1OUhho0n7YHDv6E7Ia_QruMgnenKbynnJVtfc7BOrmiY/edit?resourcekey=&gid=1088892831#gid=1088892831"; 
   const ADMIN_CODE = "Netchex123"; // Client-side only — a speed bump, not real security. Change if you like.
   const OTHER_VALUE = "__other__";
   const ANY_VALUE = "__any__";
@@ -450,6 +453,8 @@ ${aeDisplay}${aeEmail ? "\n" + aeEmail : ""}`;
         [FORM_ENTRY.aeName]: entry.aeName,
         [FORM_ENTRY.prospectName]: entry.prospectName,
         [FORM_ENTRY.industryRequested]: entry.industryRequested,
+        [FORM_ENTRY.regionRequested]: entry.regionRequested || "Any",
+        [FORM_ENTRY.sizeRequested]: entry.sizeRequested || "Any",
         [FORM_ENTRY.selectedAccount]: entry.selectedAccount,
         [FORM_ENTRY.selectedIndustry]: entry.selectedIndustry,
         [FORM_ENTRY.accountOwner]: entry.accountOwner,
@@ -470,7 +475,7 @@ ${aeDisplay}${aeEmail ? "\n" + aeEmail : ""}`;
     }
   }
 
-  function renderResults(matches, industryLabel, isOther) {
+  function renderResults(matches, industryLabel, isOther, regionVal, sizeVal) {
     const area = $("results-area");
     if (matches.length === 0) {
       area.innerHTML = `<div class="card"><p class="empty">No references are on file yet. Check data.json, or check back once the sheet has more approved references.</p>
@@ -589,6 +594,8 @@ ${aeDisplay}${aeEmail ? "\n" + aeEmail : ""}`;
           aeName,
           prospectName,
           industryRequested: industryLabel,
+          regionRequested: (regionVal && regionVal !== ANY_VALUE) ? regionVal : "Any",
+          sizeRequested: (sizeVal && sizeVal !== ANY_VALUE) ? sizeVal : "Any",
           selectedAccount: match.row.account,
           selectedIndustry: match.row.industry,
           accountOwner: match.row.owner,
@@ -638,7 +645,7 @@ ${aeDisplay}${aeEmail ? "\n" + aeEmail : ""}`;
     const regionVal = $("region-select").value;
     const sizeVal = $("size-select").value;
     const matches = findMatches(industryLabel, isOther, regionVal, sizeVal);
-    renderResults(matches, industryLabel, isOther);
+    renderResults(matches, industryLabel, isOther, regionVal, sizeVal);
     $("form-card").style.display = "none";
   });
 
