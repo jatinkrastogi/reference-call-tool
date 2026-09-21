@@ -483,12 +483,15 @@ ${aeDisplay}${aeEmail ? "\n" + aeEmail : ""}`;
       $("restart-btn-empty").addEventListener("click", startNewSearch);
       return;
     }
-    const anyExact = matches.some(m => m.exact);
+    // Show the "couldn't find an exact match" note unless at least one result fully satisfies
+    // every criterion the AE actually selected — industry always, region and size only if chosen.
+    const regionRequired = regionVal && regionVal !== ANY_VALUE;
+    const sizeRequired = sizeVal && sizeVal !== ANY_VALUE;
+    const fullyMatches = (m) => m.exact && (!regionRequired || m.matchesRegion) && (!sizeRequired || m.matchesSize);
+    const anyFullMatch = matches.some(fullyMatches);
     let headNote = "";
-    if (isOther) {
-      headNote = `<p class="empty">We don't have a reference available for "${escapeHtml(industryLabel)}", but here are the closest matches:</p>`;
-    } else if (!anyExact) {
-      headNote = `<p class="empty">No exact match for "${escapeHtml(industryLabel)}" — showing the closest available references.</p>`;
+    if (!anyFullMatch) {
+      headNote = `<p class="empty">Couldn't find a reference that matches every filter you selected — here are a few options you might still find relevant.</p>`;
     }
 
     area.innerHTML = `<div class="card">
